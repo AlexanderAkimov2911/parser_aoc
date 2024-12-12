@@ -5,8 +5,7 @@ for ((;;))
 do
 time=$(date +%H:%M:%S)
 line1="[$time] You crush Avatar of Yig for 1125."
-line2="[$time] You critically crush Zealot of Yig for 2010.
-"
+line2="[$time] You critically crush Zealot of Yig for 2010."
 
 echo $line1 >> CombatLog-2024-09-05_2331.txt
 echo $line2 >> CombatLog-2024-09-05_2331.txt
