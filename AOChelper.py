@@ -110,21 +110,15 @@ class ParserThread(threading.Thread):
         try:
           self.log = self.getNewestLog()
           if self.log == False:
-            print("No combatlogs found!\nPlease run this program either from your AOC-folder or a folder parallell to that")
+            MainWindow.PrintText("No combatlogs found!\nPlease run this program either from your AOC-folder or a folder parallell to that")
             self.window.Close(True)
             exit()
           elif self.log == None:
-            if self.window.settings["minimal_ui"]:
-              self.window.setText("Start logging:\n  /logcombat on\n#grey#_________________")
-              print("Start logging:\n  /logcombat on\n_________________")
-            else:
-              self.window.setText("Start logging:\n  /logcombat on\n#grey#Rclick = Settings")
-              print("Start logging:\n  /logcombat on\nRclick = Settings")
+            MainWindow.PrintText("Start logging:\n  /logcombat on")
             sleep(5)
             continue
           else:
-            self.window.setText("Logfile found:\n%s" % self.log.name.split("/")[-1])
-            print("Logfile found:\n%s" % self.log.name.split("/")[-1])
+            MainWindow.PrintText("Logfile found:\n%s" % self.log.name.split("/")[-1])
         except:
           if verbose:
             raise
@@ -158,7 +152,7 @@ class ParserThread(threading.Thread):
         # End of file
         if not line:
           if self.playback:
-            print("Done!")
+            MainWindow.PrintText("Done!")
             sleep(60)
             for p in self.parsers:
               try:
@@ -185,7 +179,7 @@ class ParserThread(threading.Thread):
                 self.log.close()
                 self.log = new_log
                 idle = 0
-                self.window.setText("New log:\n%s" % self.log.name.split("/")[-1])
+                MainWindow.PrintText("New log:\n%s" % self.log.name.split("/")[-1])
             
             idle += 0.1
             sleep(0.1)
@@ -336,7 +330,7 @@ class ParserThread(threading.Thread):
       if "<font color=" in line: return None # faction or renown
       
       
-      print("[00:00:00] %s" % line)
+      MainWindow.PrintText("[00:00:00] %s" % line)
     return None
   
   
@@ -370,6 +364,7 @@ class DPS(LogParser):
     self.current = []
     self.current_damage = 0
     self.last_action = 0 # number of poll()'s since we last dealt damage
+
   
   def parse(self, x):
     (attacker, action, ability, target, amount, type, crit) = x
@@ -378,7 +373,8 @@ class DPS(LogParser):
       
   def updateWindow(self):
     if self.total:
-      print("Enc:%6u Real Time:%6u" % (average(self.encounter), average(self.current)))
+      MainWindow.PrintText("\033[H\033[J")
+      MainWindow.PrintText("Encounter DPS:%6u \nReal Time DPS:%6u" % (average(self.encounter), average(self.current)))
 
 
   def poll(self):
@@ -418,8 +414,6 @@ parsers = {
 class MainWindow():
   default_settings = {
     "window_position" : (0,0),
-    "always_on_top" :   True,
-    "minimal_ui" :      False,
     "save_settings" :   False,
     "font_adjustment" : 1,
     "parsers" :         [enum.DPS,],
@@ -461,9 +455,9 @@ class MainWindow():
     # Hand the ParserWindow to the ParserThread
     self.parser.parsers.append(p)
   
-  # Sometimes the parser thread prints stuff; we use the biggest visible window to show that
-  def setText(self, text, scroll=False):
-    window = None
+  def PrintText(text):
+    x = text
+    print(x)
 
 def usage():
   print("")
