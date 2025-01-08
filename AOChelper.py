@@ -1,23 +1,11 @@
 import sys, os, threading, getopt, re, pickle
 import time as real_time
+from textual.app import App, ComposeResult
+from textual.widgets import Button, Footer, Header
 
 speedup = 1
 elapsed_rewind = 0
 
-class enum:
-  RAID    = 1
-  TOE     = 2
-  JC      = 3
-  DPS     = 4
-  DS      = 5
-  DEBUFF  = 6
-  DOTS    = 7
-  AOT  = 99
-  MIN  = 98
-  SS   = 97
-  FINC = 96
-  FDEC = 95
-  EXIT = 100
 
 def sleep(delay):
   global speedup
@@ -401,80 +389,17 @@ class DPS(LogParser):
     return False
 
 
-parsers = {
-  #enum.RAID : RAID,
-  enum.DPS : DPS,
-  #enum.DS  : DS,
-  #enum.DEBUFF  : DEBUFF,
-  #enum.DOTS  : DOTS,
-}
 
 # This is the main window for the application.
 # It has many sub-windows of type ParserWindow which has the actual logic for the boss-fights
-class MainWindow():
-  default_settings = {
-    "window_position" : (0,0),
-    "save_settings" :   False,
-    "font_adjustment" : 1,
-    "parsers" :         [enum.DPS,],
-  }
+class MainWindow(App):
 
-  def __init__(self, title, parser):
-    self.settings = self.default_settings
-                        
-    #   # Temporary hack to merge all raid parsers to one for those with stored settings that include the old, individual parsers
-    #   for x in (enum.TOE, enum.JC):
-    #     if x in self.settings["parsers"]:
-    #       if enum.RAID in self.settings["parsers"]:
-    #         self.settings["parsers"].remove(x)
-    #       else:
-    #         self.settings["parsers"][self.settings["parsers"].index(x)] = enum.RAID
-      
-    self.parser = parser
-    #self.font = (23,45)
-    self.windows = {}
-    
-    #wx.Frame.__init__(self, None, title=title, pos=self.settings["window_position"], style=wx.FRAME_NO_TASKBAR) # Border and stuff is set in FixVisualLook, called later in constructor
-    
-    # List of available parsers
-    #for id,class_name in parsers.items():
-      # Create a menu item for the parser, so we can enable/disable it
-      #menu_item = self.menu.AppendCheckItem(id, class_name.short_text)
-      #menu_item.Check(id in self.settings["parsers"])
-      #self.Bind(wx.EVT_MENU, self.SettingsChanged, menu_item)
-    
-    # Add the default parsers
-    for id in self.settings["parsers"]:
-      self.AddParser(id)
-    
-  def AddParser(self, class_id):
-    # Create a window for the parser
-    p = parsers[class_id](self)
-    self.windows[class_id] = p
-    
-    # Hand the ParserWindow to the ParserThread
-    self.parser.parsers.append(p)
-  
   def PrintText(text):
     x = text
     print(x)
 
-def usage():
-  print("")
-  print("AOChelper.py [-z] [-v|-q] [-f <CombatLog-YYYY-MM-DD_HHMM.txt>] [-s 10]")
-  print("General options:")
-  print("    -z               Discard saved settings")
-  print("    -v               Verbose; prints more information on console")
-  print("    -q               Quiet; prints less information on console")
-  print("    -b               Enable BossDisplay")
-  print("    -d               Enable DebuffFinder")
-  print()
-  print("Playback: options")
-  print("    -f <filename>    Parse filename as a combatlog, at original speed")
-  print("    -s XX            Speed up playback of file XX times")
-  exit()
 
-def main(argv):
+def main():
   global speedup, start_time, verbose
   verbose = 1
   speedup = 1
@@ -483,49 +408,10 @@ def main(argv):
   start_time = real_time.time()
   log = None
 
-  try:
-    opts, args = getopt.getopt(argv, "hs:f:vqdbz", ["help", "speedup", "file", "verbose", "quiet", "debuff-finder", "boss-display", "no-config"])
-  except getopt.GetoptError:
-    usage()
-  
-  for opt, arg in opts:
-    if opt in ("-h", "--help"):
-      usage()
-    elif opt in ("-s", "--speedup"):
-      speedup = int(arg)
-    elif opt in ("-f", "--file"):
-      try: log = open(arg)
-      except:
-        print("Error: Can't open file '%s'" % arg)
-        exit()
-    elif opt in ("-v", "--verbose"):
-      verbose = 1
-    elif opt in ("-q", "--quiet"):
-      verbose = 0
-    elif opt in ("-d", "--debuff-finder"):
-      debuff_finder = True
-    elif opt in ("-b", "--boss-display"):
-      boss_display = True
-    elif opt in ("-z", "--no-config"):
-      try:
-        os.remove("AOChelper.cfg")
-      except:
-        pass
-  
-  # Start parser and output window
   parser = ParserThread(log)
-  frame  = MainWindow("AOChelper v0.3", parser)
-  parser.window = frame
-  
-  # Enable this to get a list of all (de)buffs applied. Manual labour to add players to the class is needed
-  if debuff_finder:
-    parser.parsers.append(DebuffFinder())
-  if boss_display:
-    parser.parsers.append(BossDisplay())
-  # parser.parsers.append(CritDetector())
-  
+  parser.parsers.append(DPS(4))
   parser.start()
 
 
 if __name__ == "__main__":
-  main(sys.argv)
+  main()
