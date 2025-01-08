@@ -343,7 +343,10 @@ class LogParser():
 # This class presents your own dps
 class DPS(LogParser):
   short_text = "DPS meter"
-  
+  dps_real_time = None
+  dps_encounter = None
+  dps_targets = ()
+
   def __init__(self, parent):
     LogParser.__init__(self)
     #ParserWindow.__init__(self, parent)
@@ -361,8 +364,11 @@ class DPS(LogParser):
       
   def updateWindow(self):
     if self.total:
-      MainWindow.PrintText("\033[H\033[J")
-      MainWindow.PrintText("Encounter DPS:%6u \nReal Time DPS:%6u" % (average(self.encounter), average(self.current)))
+      DPS.dps_encounter = average(self.encounter)
+      DPS.dps_real_time = average(self.current)
+      MainWindow.PrintText()
+      #MainWindow.PrintText("\033[H\033[J")
+      #MainWindow.PrintText("Encounter DPS:%6u \nReal Time DPS:%6u" % (average(self.encounter), average(self.current)))
 
 
   def poll(self):
@@ -397,6 +403,9 @@ class MainWindow(App):
   def PrintText(text):
     x = text
     print(x)
+    #print("\033[H\033[J")
+    print(f"Encounter DPS:{DPS.dps_encounter} \nReal Time DPS:{DPS.dps_real_time}")
+
 
 
 def main():
