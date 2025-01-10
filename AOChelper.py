@@ -404,15 +404,15 @@ class DPS(LogParser):
         self.total.extend([0] * self.last_action)
         self.encounter.extend([0] * self.last_action)
         self.last_action = 0
-
-
+      self.encounter_active = 1
       self.total.append(self.current_damage)
       self.encounter.append(self.current_damage)
     
     self.current = [self.current_damage] + self.current[:4]
     
     if self.last_action > 30:
-      self.encounter_active == 0
+      self.encounter_active = 0
+
 
     # encounter stopwatch 
     if self.encounter_active == 1 and self.stopwatch_active == 0:
