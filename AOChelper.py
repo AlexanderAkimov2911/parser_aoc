@@ -1,7 +1,7 @@
-import sys, os, threading, getopt, re, pickle
+import sys, os, threading, getopt, re, pickle, platform
 import time as real_time
-from textual.app import App, ComposeResult
-from textual.widgets import Button, Footer, Header
+#from textual.app import App, ComposeResult
+#from textual.widgets import Button, Footer, Header
 
 speedup = 1
 elapsed_rewind = 0
@@ -31,6 +31,10 @@ def average(values):
     return 0.0
 
 class ParserThread(threading.Thread):
+
+  log_status = None
+  log_file = None
+
   def __init__(self, log, name="parser"):
     self.log = log
     self.window = None
@@ -65,7 +69,14 @@ class ParserThread(threading.Thread):
   
   def getNewestLog(self):
     # Get all logfiles ordered by modified time
-    logs = [(os.path.getmtime(x), x) for x in ["%s/%s" % (self.logdir, y) for y in os.listdir(self.logdir) if y[0:10] == "CombatLog-"]]
+    if platform.system() == "Windows":
+      logs = [(os.path.getmtime(x), x) for x in ["%s\%s" % (self.logdir, y) for y in os.listdir(self.logdir) if y[0:10] == "CombatLog-"]]
+    elif platform.system() == "Linux":
+      logs = [(os.path.getmtime(x), x) for x in ["%s/%s" % (self.logdir, y) for y in os.listdir(self.logdir) if y[0:10] == "CombatLog-"]]
+    else:
+      print(f"Unsupported OS")
+      exit()
+
     logs.sort()
     
     if not logs:
@@ -98,20 +109,25 @@ class ParserThread(threading.Thread):
         try:
           self.log = self.getNewestLog()
           if self.log == False:
-            MainWindow.PrintText("No combatlogs found!\nPlease run this program either from your AOC-folder or a folder parallell to that")
-            self.window.Close(True)
+            ParserThread.log_status = 0
+            MainWindow.PrintText()
+            #self.window.Close(True)
             exit()
           elif self.log == None:
-            MainWindow.PrintText("Start logging:\n  /logcombat on")
+            ParserThread.log_status = 1
+            MainWindow.PrintText()
             sleep(5)
             continue
           else:
-            MainWindow.PrintText("Logfile found:\n%s" % self.log.name.split("/")[-1])
+            ParserThread.log_status = 2
+            ParserThread.log_file = self.log.name
+            MainWindow.PrintText()
         except:
           if verbose:
             raise
           try:
-            self.window.Close(True)
+            #self.window.Close(True)
+            exit()
           except:
             pass
           exit()
@@ -345,11 +361,11 @@ class DPS(LogParser):
   short_text = "DPS meter"
   dps_real_time = None
   dps_encounter = None
-  dps_targets = ()
+  dps_targets = set()
+  dps_encounter_time = None
 
   def __init__(self, parent):
     LogParser.__init__(self)
-    #ParserWindow.__init__(self, parent)
     self.total = [] 
     self.encounter = []
     self.current = []
@@ -361,14 +377,14 @@ class DPS(LogParser):
     (attacker, action, ability, target, amount, type, crit) = x
     if action == "damage" and attacker in ("You","you"):
       self.current_damage += amount
+      DPS.dps_targets.add(target)
+
       
   def updateWindow(self):
     if self.total:
       DPS.dps_encounter = average(self.encounter)
       DPS.dps_real_time = average(self.current)
       MainWindow.PrintText()
-      #MainWindow.PrintText("\033[H\033[J")
-      #MainWindow.PrintText("Encounter DPS:%6u \nReal Time DPS:%6u" % (average(self.encounter), average(self.current)))
 
 
   def poll(self):
@@ -398,13 +414,22 @@ class DPS(LogParser):
 
 # This is the main window for the application.
 # It has many sub-windows of type ParserWindow which has the actual logic for the boss-fights
-class MainWindow(App):
+class MainWindow():
 
-  def PrintText(text):
-    x = text
-    print(x)
-    #print("\033[H\033[J")
-    print(f"Encounter DPS:{DPS.dps_encounter} \nReal Time DPS:{DPS.dps_real_time}")
+  def PrintText():
+    if ParserThread.log_status == 0: # Stage of opening the game folder
+      print(f"No combatlogs found!\nPlease run this program either from your AOC-folder or a folder parallell to that")
+    elif ParserThread.log_status == 1: # Stage of find actual CombatLog
+      print(f"\033[H\033[J")
+      print(f"Game folder found. \nStart logging:\n/logcombat on")
+    elif ParserThread.log_status == 2: # Stage of battle
+      print("\033[H\033[J")
+      print(f"Logfile found: {ParserThread.log_file}") 
+      print(f"Encounter DPS:{DPS.dps_encounter} \nReal Time DPS:{DPS.dps_real_time}")
+      print(f"Ecounter time: {DPS.dps_encounter_time}")
+      print(f"Targets in battle: {DPS.dps_targets}")
+
+   
 
 
 
