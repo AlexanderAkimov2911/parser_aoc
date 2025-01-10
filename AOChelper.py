@@ -1,5 +1,6 @@
 import sys, os, threading, getopt, re, pickle, platform
 import time as real_time
+import datetime
 #from textual.app import App, ComposeResult
 #from textual.widgets import Button, Footer, Header
 
@@ -371,7 +372,9 @@ class DPS(LogParser):
     self.current = []
     self.current_damage = 0
     self.last_action = 0 # number of poll()'s since we last dealt damage
-
+    self.encounter_active = 0
+    self.stopwatch_active = 0
+    self.start = real_time.time()
   
   def parse(self, x):
     (attacker, action, ability, target, amount, type, crit) = x
@@ -390,7 +393,7 @@ class DPS(LogParser):
   def poll(self):
     if self.current_damage == 0:
       self.last_action += 1
-    
+
     # Only add to total/encounter if we are actually fighting
     if self.current_damage:
       # Thirty seconds without dealing damage? We call that end of battle...
@@ -401,11 +404,27 @@ class DPS(LogParser):
         self.total.extend([0] * self.last_action)
         self.encounter.extend([0] * self.last_action)
         self.last_action = 0
+
+
       self.total.append(self.current_damage)
       self.encounter.append(self.current_damage)
     
     self.current = [self.current_damage] + self.current[:4]
     
+    if self.last_action > 30:
+      self.encounter_active == 0
+
+    # encounter stopwatch 
+    if self.encounter_active == 1 and self.stopwatch_active == 0:
+      self.start = real_time.time()
+      self.stopwatch_active = 1
+    elif self.encounter_active == 1 and self.stopwatch_active == 1:
+      self.total_secs = round(real_time.time() - self.start)
+      self.convert = str(datetime.timedelta(seconds = self.total_secs))
+      DPS.dps_encounter_time = self.convert
+    elif self.encounter_active == 0 and self.stopwatch_active == 1:
+      self.stopwatch_active = 0
+
     self.updateWindow()
     self.current_damage = 0
     return False
