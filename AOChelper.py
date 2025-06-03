@@ -128,7 +128,7 @@ class ParserThread(threading.Thread):
             raise
           try:
             #self.window.Close(True)
-            exit()
+            print(f"Playback {self.log}")
           except:
             pass
           exit()
@@ -157,7 +157,8 @@ class ParserThread(threading.Thread):
         # End of file
         if not line:
           if self.playback:
-            MainWindow.PrintText("Done!")
+            #MainWindow.PrintText("Done!")
+            print(f"Done!")
             sleep(60)
             for p in self.parsers:
               try:
@@ -184,7 +185,8 @@ class ParserThread(threading.Thread):
                 self.log.close()
                 self.log = new_log
                 idle = 0
-                MainWindow.PrintText("New log:\n%s" % self.log.name.split("/")[-1])
+                #MainWindow.PrintText("New log:\n%s" % self.log.name.split("/")[-1])
+                print(f"New log:\n {self.log.name}")
             
             idle += 0.1
             sleep(0.1)
@@ -335,7 +337,8 @@ class ParserThread(threading.Thread):
       if "<font color=" in line: return None # faction or renown
       
       
-      MainWindow.PrintText("[00:00:00] %s" % line)
+      #MainWindow.PrintText("[00:00:00] %s" % line)
+      print(f"[00:00:00] {line}")
     return None
   
   
@@ -360,13 +363,22 @@ class LogParser():
 # This class presents your own dps
 class DPS(LogParser):
   short_text = "DPS meter"
+
+  # Real time combat monitor
   dps_real_time = None
   dps_encounter = None
   dps_targets = set()
   dps_encounter_time = None
 
+  # Necromancer dots monitor
+  dots_text = None
+  player_is_necro = 0
+
+
   def __init__(self, parent):
     LogParser.__init__(self)
+
+    # Real time combat monitor
     self.total = [] 
     self.encounter = []
     self.current = []
@@ -375,20 +387,74 @@ class DPS(LogParser):
     self.encounter_active = 0
     self.stopwatch_active = 0
     self.start = real_time.time()
-  
+
+    self.TIMEOUT_PB   = 15.5
+    self.TIMEOUT_FTW  = 24.5
+    self.TIMEOUT_MOTD = 30.5
+
+    # Necromancer dots monitor
+    self.pb   = elapsed() - self.TIMEOUT_PB
+    self.ftw  = elapsed() - self.TIMEOUT_FTW
+    self.motd = elapsed() - self.TIMEOUT_MOTD
+    
+    # The durations can be increased with AA
+    self.time_pb   = self.TIMEOUT_PB
+    self.time_ftw  = self.TIMEOUT_FTW
+    self.time_motd = self.TIMEOUT_MOTD
+    
+
+
   def parse(self, x):
     (attacker, action, ability, target, amount, type, crit) = x
+    # Real time combat monitor
     if action == "damage" and attacker in ("You","you"):
       self.current_damage += amount
       DPS.dps_targets.add(target)
+ 
+    # Necromancer dots monitor
+    if attacker == "You" and action == "buff" and ability:
+      if   ability[0:18] == "Pestilential Blast":   
+        self.pb   = elapsed()
+        DPS.player_is_necro = 1
+      elif ability[0:14] == "Flesh to Worms":       
+        self.ftw  = elapsed()
+        DPS.player_is_necro = 1
+      elif ability[0:20] == "Mark of the Devourer": 
+        self.motd = elapsed()
+        DPS.player_is_necro = 1
+
+
 
       
   def updateWindow(self):
     if self.total:
-      DPS.dps_encounter = average(self.encounter)
-      DPS.dps_real_time = average(self.current)
-      MainWindow.PrintText()
+      DPS.dps_encounter = int(average(self.encounter))
+      DPS.dps_real_time = int(average(self.current))
 
+    if self.player_is_necro == 1:
+      # Necromancer dots monitor
+      text = " "
+    
+      # Pestilential blast
+      duration = self.time_pb - (elapsed() - self.pb)
+      if duration < 0:    text += "PB: 0"
+      else:               text += "PB: %2u" % duration
+    
+      text += "   "
+      # Flesh to Worms
+      duration = self.time_ftw - (elapsed() - self.ftw)
+      if duration < 0:    text += "Worms: 0"
+      else:               text += "Worms: %2u" % duration
+    
+      text += "  "
+      # Mark of the Devourer
+      duration = self.time_motd - (elapsed() - self.motd)
+      if duration < 0:    text += "Mark: 0"
+      else:               text += "Mark: %2u" % duration
+
+      DPS.dots_text = text
+
+    MainWindow.PrintText()
 
   def poll(self):
     if self.current_damage == 0:
@@ -443,27 +509,29 @@ class MainWindow():
       print(f"Game folder found. \nStart logging:\n/logcombat on")
     elif ParserThread.log_status == 2: # Stage of battle
       print("\033[H\033[J")
-      print(f"Logfile found: {ParserThread.log_file}") 
-      print(f"Encounter DPS:{DPS.dps_encounter} \nReal Time DPS:{DPS.dps_real_time}")
-      print(f"Ecounter time: {DPS.dps_encounter_time}")
-      print(f"Targets in battle: {DPS.dps_targets}")
+      print("   Age of Conan combat monitor")
+      #print(f"Logfile found: {ParserThread.log_file}") 
+      print(f"   Encounter DPS:{DPS.dps_encounter} \n   Real Time DPS:{DPS.dps_real_time}")
+      print(f"   Ecounter time: {DPS.dps_encounter_time}")
+      print(f"   Targets in battle: {DPS.dps_targets}")
+      if DPS.player_is_necro == 1:
+        print(f"   Necromancer DOTS timeout:\n  {DPS.dots_text}")
 
    
-
 
 
 def main():
   global speedup, start_time, verbose
   verbose = 1
   speedup = 1
-  debuff_finder = False
-  boss_display = False
   start_time = real_time.time()
   log = None
 
   parser = ParserThread(log)
   parser.parsers.append(DPS(4))
   parser.start()
+
+
 
 
 if __name__ == "__main__":
