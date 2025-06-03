@@ -40,9 +40,9 @@ def sum_damage_by_attacker_target(data):
 
 
 if __name__ == '__main__':
-    pprint.pprint(parser(template_dps, combatlog_local))
+    #pprint.pprint(parser(template_dps, combatlog_local))
 
-    #pprint.pprint(sum_damage_by_attacker_target(parser(template_dps, combatlog_local)))
+    pprint.pprint(sum_damage_by_attacker_target(parser(template_dps, combatlog)))
     #sum_damage_by_attacker_target(parser(template_dps, combatlog))
 
 
