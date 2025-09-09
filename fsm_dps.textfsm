@@ -1,4 +1,4 @@
-Value time (.\d\d:\d\d:\d\d.)
+Value time (\d\d:\d\d:\d\d)
 Value attacker (You|Your)
 Value action (slash|crush|slashes|crushes|pierces|hits)
 Value target ([a-z+|A-Z+|0-9+|\s|()|']+|you)
@@ -8,9 +8,9 @@ Value damage_type (holy|unholy|fire|electrical|frost|crushing)
 Value crit (critically|crits)
 
 Start
- ^${time}\s${attacker}(?:'s)?\s${crit}\s${action}\s${target}\sfor\s${damage} -> Record
- ^${time}\s${attacker}(?:'s)?\s${action}\s${target}\sfor\s${damage} -> Record
- ^${time}\s${attacker}(?:'s)?\s${combo}\s${crit}\s${target}\sfor\s${damage}\s${damage_type} -> Record
- ^${time}\s${attacker}(?:'s)?\s${combo}\s${action}\s${target}\sfor\s${damage}\s${damage_type} -> Record
- ^${time}\s${attacker}(?:'s)?\s${combo}\s${crit}\s${action}\s${target}\sfor\s${damage} -> Record
- ^${time}\s${attacker}(?:'s)?\s${combo}\s${action}\s${target}\sfor\s${damage} -> Record
+ ^.${time}.\s${attacker}(?:'s)?\s${crit}\s${action}\s${target}\sfor\s${damage} -> Record
+ ^.${time}.\s${attacker}(?:'s)?\s${action}\s${target}\sfor\s${damage} -> Record
+ ^.${time}.\s${attacker}(?:'s)?\s${combo}\s${crit}\s${target}\sfor\s${damage}\s${damage_type} -> Record
+ ^.${time}.\s${attacker}(?:'s)?\s${combo}\s${action}\s${target}\sfor\s${damage}\s${damage_type} -> Record
+ ^.${time}.\s${attacker}(?:'s)?\s${combo}\s${crit}\s${action}\s${target}\sfor\s${damage} -> Record
+ ^.${time}.\s${attacker}(?:'s)?\s${combo}\s${action}\s${target}\sfor\s${damage} -> Record
